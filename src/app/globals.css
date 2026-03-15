@@ -1,0 +1,132 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ── Neutral Palette ── */
+    --gray-50: 210 20% 98%;
+    --gray-100: 210 17% 95%;
+    --gray-200: 214 16% 91%;
+    --gray-300: 213 14% 84%;
+    --gray-400: 213 12% 65%;
+    --gray-500: 215 10% 47%;
+    --gray-600: 215 12% 34%;
+    --gray-700: 216 14% 26%;
+    --gray-800: 217 20% 16%;
+    --gray-900: 220 24% 10%;
+
+    /* ── Brand ── */
+    --indigo-500: 224 71% 50%;
+    --indigo-600: 224 71% 42%;
+    --indigo-700: 224 71% 30%;
+    --indigo-900: 224 71% 18%;
+    --indigo-950: 224 71% 12%;
+
+    /* ── Light mode semantic tokens ── */
+    --background: 210 20% 98%;
+    --foreground: 220 24% 10%;
+    --surface: 0 0% 100%;
+    --surface-hover: 210 17% 95%;
+    --surface-elevated: 0 0% 100%;
+    --border: 214 16% 91%;
+    --border-strong: 213 14% 84%;
+    --text-primary: 220 24% 10%;
+    --text-secondary: 215 12% 34%;
+    --text-muted: 215 10% 47%;
+
+    /* ── Brand tokens ── */
+    --primary: 224 71% 24%;
+    --primary-foreground: 0 0% 100%;
+    --accent: 224 76% 97%;
+    --accent-foreground: 224 71% 28%;
+    --accent-hover: 224 60% 93%;
+
+    /* ── Semantic colors ── */
+    --success: 160 84% 35%;
+    --success-foreground: 0 0% 100%;
+    --success-subtle: 160 60% 95%;
+    --warning: 36 90% 48%;
+    --warning-foreground: 0 0% 100%;
+    --warning-subtle: 36 90% 96%;
+    --danger: 0 72% 51%;
+    --danger-foreground: 0 0% 100%;
+    --danger-subtle: 0 72% 97%;
+    --info: 210 90% 48%;
+    --info-foreground: 0 0% 100%;
+    --info-subtle: 210 90% 96%;
+
+    /* ── shadcn compat ── */
+    --secondary: 210 17% 95%;
+    --secondary-foreground: 217 20% 16%;
+    --muted: 210 17% 95%;
+    --muted-foreground: 215 10% 47%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 24% 10%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --input: 214 16% 91%;
+    --ring: 224 71% 44%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 220 24% 9%;
+    --foreground: 210 20% 96%;
+    --surface: 220 20% 13%;
+    --surface-hover: 220 18% 17%;
+    --surface-elevated: 220 18% 16%;
+    --border: 216 14% 22%;
+    --border-strong: 216 14% 28%;
+    --text-primary: 210 20% 96%;
+    --text-secondary: 213 12% 60%;
+    --text-muted: 215 10% 45%;
+    --primary: 224 76% 68%;
+    --primary-foreground: 224 71% 12%;
+    --accent: 224 30% 20%;
+    --accent-foreground: 224 76% 75%;
+    --secondary: 216 14% 22%;
+    --secondary-foreground: 213 12% 80%;
+    --muted: 220 18% 17%;
+    --muted-foreground: 215 10% 50%;
+    --card: 220 20% 13%;
+    --card-foreground: 210 20% 96%;
+    --destructive: 0 62% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --input: 216 14% 22%;
+    --ring: 224 60% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Satoshi", system-ui, sans-serif;
+    font-feature-settings: "rlig" 1, "calt" 1, "ss01" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Improve selection */
+  ::selection {
+    @apply bg-primary/20;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    @apply w-1.5 h-1.5;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-border;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-border-strong;
+  }
+}
