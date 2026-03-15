@@ -1,25 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FormField } from "@/components/shared/FormField";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { email, minLength, required, runValidations } from "@/lib/validation";
+
+const PASSWORD_MIN_LENGTH = 8;
 
 export function LoginForm() {
-  const [email, setEmail] = useState("");
+  const [emailValue, setEmailValue] = useState("");
   const [password, setPassword] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const { login, loginMutation } = useAuth();
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    try {
-      await login(email, password);
-    } catch {
-      // Error shown via loginMutation.isError
+  const validate = useCallback((): boolean => {
+    const passwordError =
+      required(password, "Password") ??
+      minLength(password, PASSWORD_MIN_LENGTH, "Password");
+    const result = runValidations([
+      { key: "email", error: email(emailValue) },
+      { key: "password", error: passwordError },
+    ]);
+    if (result.valid) {
+      setFieldErrors({});
+      return true;
     }
+    setFieldErrors(result.errors);
+    return false;
+  }, [emailValue, password]);
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!validate()) return;
+    setFieldErrors({});
+    login(emailValue.trim(), password).catch(() => {});
   }
+
+  const canSubmit =
+    emailValue.trim() !== "" &&
+    password.length >= PASSWORD_MIN_LENGTH &&
+    !loginMutation.isPending;
 
   return (
     <Card className="w-full border-border shadow-sm">
@@ -36,36 +59,40 @@ export function LoginForm() {
             name="email"
             required
             error={
-              loginMutation.isError
-                ? (loginMutation.error as Error).message
-                : undefined
+              fieldErrors.email ??
+              (loginMutation.isError ? (loginMutation.error as Error).message : undefined)
             }
           >
             <Input
               type="email"
               placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+              value={emailValue}
+              onChange={(e) => setEmailValue(e.target.value)}
               autoComplete="email"
               disabled={loginMutation.isPending}
+              aria-invalid={!!fieldErrors.email}
             />
           </FormField>
-          <FormField label="Password" name="password" required>
+          <FormField
+            label="Password"
+            name="password"
+            required
+            error={fieldErrors.password}
+          >
             <Input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required
               autoComplete="current-password"
               disabled={loginMutation.isPending}
+              aria-invalid={!!fieldErrors.password}
             />
           </FormField>
           <Button
             type="submit"
             className="w-full"
             loading={loginMutation.isPending}
-            disabled={loginMutation.isPending}
+            disabled={!canSubmit}
           >
             {loginMutation.isPending ? "Signing in…" : "Sign in"}
           </Button>

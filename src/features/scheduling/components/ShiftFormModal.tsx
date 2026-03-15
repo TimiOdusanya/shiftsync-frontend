@@ -23,18 +23,9 @@ import {
 import { useLocations } from "@/hooks/useLocations";
 import { useSkills } from "@/hooks/useSkills";
 import { useCreateShift, useUpdateShift } from "@/hooks/useShifts";
+import { requiredId, runValidations } from "@/lib/validation";
+import { getTimeInZone, localTimeInZoneToUTC, toDateInputInZone } from "@/lib/utils";
 import type { Shift } from "@/types";
-
-function toDateInput(date: string): string {
-  return date.slice(0, 10);
-}
-function toTimeInput(date: string): string {
-  const d = new Date(date);
-  return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
-}
-function toISO(dateStr: string, timeStr: string): string {
-  return `${dateStr}T${timeStr}:00.000Z`;
-}
 
 export interface ShiftFormModalProps {
   shift: Shift | null;
@@ -51,64 +42,86 @@ export function ShiftFormModal({ shift, open, onOpenChange }: ShiftFormModalProp
 
   const [locationId, setLocationId] = React.useState(shift?.locationId ?? "");
   const [skillId, setSkillId] = React.useState(shift?.skillId ?? "");
+  const tz0 = shift?.location?.timezone ?? "UTC";
   const [startDate, setStartDate] = React.useState(
-    shift ? toDateInput(shift.startAt) : ""
+    shift ? toDateInputInZone(shift.startAt, tz0) : ""
   );
   const [startTime, setStartTime] = React.useState(
-    shift ? toTimeInput(shift.startAt) : "09:00"
+    shift ? getTimeInZone(shift.startAt, tz0) : "09:00"
   );
   const [endDate, setEndDate] = React.useState(
-    shift ? toDateInput(shift.endAt) : ""
+    shift ? toDateInputInZone(shift.endAt, tz0) : ""
   );
   const [endTime, setEndTime] = React.useState(
-    shift ? toTimeInput(shift.endAt) : "17:00"
+    shift ? getTimeInZone(shift.endAt, tz0) : "17:00"
   );
-  const [headcountRequired, setHeadcountRequired] = React.useState(
-    shift?.headcountRequired ?? 1
+  const [headcountRequired, setHeadcountRequired] = React.useState<number | "">(
+    shift != null ? shift.headcountRequired : ""
   );
   const [error, setError] = React.useState("");
 
   React.useEffect(() => {
     if (shift) {
+      const tz = shift.location?.timezone ?? "UTC";
       setLocationId(shift.locationId);
       setSkillId(shift.skillId);
-      setStartDate(toDateInput(shift.startAt));
-      setStartTime(toTimeInput(shift.startAt));
-      setEndDate(toDateInput(shift.endAt));
-      setEndTime(toTimeInput(shift.endAt));
+      setStartDate(toDateInputInZone(shift.startAt, tz));
+      setStartTime(getTimeInZone(shift.startAt, tz));
+      setEndDate(toDateInputInZone(shift.endAt, tz));
+      setEndTime(getTimeInZone(shift.endAt, tz));
       setHeadcountRequired(shift.headcountRequired);
     } else {
       const today = new Date().toISOString().slice(0, 10);
+      setLocationId("");
+      setSkillId("");
       setStartDate(today);
       setEndDate(today);
       setStartTime("09:00");
       setEndTime("17:00");
-      setHeadcountRequired(1);
+      setHeadcountRequired("");
     }
-  }, [shift]);
+  }, [shift, open]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
-    const startAt = toISO(startDate, startTime);
-    const endAt = toISO(endDate, endTime);
-    if (new Date(endAt) <= new Date(startAt)) {
-      setError("End time must be after start time");
+
+    const locationError = requiredId(locationId, "location");
+    const skillError = requiredId(skillId, "skill/role");
+    const validation = runValidations([
+      { key: "location", error: locationError },
+      { key: "skill", error: skillError },
+    ]);
+    if (!validation.valid) {
+      setError(Object.values(validation.errors).join(" "));
       return;
     }
+
+    const locId = locationId.trim();
+    const skId = skillId.trim();
+    const timezone =
+      locations.find((l) => l.id === locId)?.timezone ?? "UTC";
+    const startAt = localTimeInZoneToUTC(startDate, startTime, timezone);
+    const endAt = localTimeInZoneToUTC(endDate, endTime, timezone);
+    if (new Date(endAt) <= new Date(startAt)) {
+      setError("End time must be after start time.");
+      return;
+    }
+    const headcount =
+      headcountRequired === "" || headcountRequired < 1 ? 1 : headcountRequired;
     try {
       if (isEdit && shift) {
         await updateMutation.mutateAsync({
           id: shift.id,
-          data: { locationId, skillId, startAt, endAt, headcountRequired },
+          data: { locationId: locId, skillId: skId, startAt, endAt, headcountRequired: headcount },
         });
       } else {
         await createMutation.mutateAsync({
-          locationId,
-          skillId,
+          locationId: locId,
+          skillId: skId,
           startAt,
           endAt,
-          headcountRequired,
+          headcountRequired: headcount,
         });
       }
       onOpenChange(false);
@@ -118,6 +131,13 @@ export function ShiftFormModal({ shift, open, onOpenChange }: ShiftFormModalProp
   }
 
   const pending = createMutation.isPending || updateMutation.isPending;
+  const canSubmit =
+    locationId.trim() !== "" &&
+    skillId.trim() !== "" &&
+    startDate !== "" &&
+    endDate !== "" &&
+    headcountRequired !== "" &&
+    (typeof headcountRequired !== "number" || headcountRequired >= 1);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -126,9 +146,18 @@ export function ShiftFormModal({ shift, open, onOpenChange }: ShiftFormModalProp
           <DialogTitle>{isEdit ? "Edit shift" : "New shift"}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <FormField label="Location" name="location" required>
-            <Select value={locationId} onValueChange={setLocationId} required>
-              <SelectTrigger id="location">
+          <FormField
+            label="Location"
+            name="location"
+            required
+            error={!locationId.trim() && error ? "Select a location" : undefined}
+          >
+            <Select
+              value={locationId || undefined}
+              onValueChange={(v) => setLocationId(v ?? "")}
+              required
+            >
+              <SelectTrigger id="location" aria-invalid={!locationId.trim()}>
                 <SelectValue placeholder="Select location" />
               </SelectTrigger>
               <SelectContent>
@@ -140,9 +169,18 @@ export function ShiftFormModal({ shift, open, onOpenChange }: ShiftFormModalProp
               </SelectContent>
             </Select>
           </FormField>
-          <FormField label="Skill / role" name="skill" required>
-            <Select value={skillId} onValueChange={setSkillId} required>
-              <SelectTrigger id="skill">
+          <FormField
+            label="Skill / role"
+            name="skill"
+            required
+            error={!skillId.trim() && error ? "Select a skill/role" : undefined}
+          >
+            <Select
+              value={skillId || undefined}
+              onValueChange={(v) => setSkillId(v ?? "")}
+              required
+            >
+              <SelectTrigger id="skill" aria-invalid={!skillId.trim()}>
                 <SelectValue placeholder="Select skill" />
               </SelectTrigger>
               <SelectContent>
@@ -184,8 +222,11 @@ export function ShiftFormModal({ shift, open, onOpenChange }: ShiftFormModalProp
             <Input
               type="number"
               min={1}
-              value={headcountRequired}
-              onChange={(e) => setHeadcountRequired(Number(e.target.value))}
+              value={headcountRequired === "" ? "" : headcountRequired}
+              onChange={(e) => {
+                const v = e.target.value;
+                setHeadcountRequired(v === "" ? "" : Number(v));
+              }}
               required
             />
           </FormField>
@@ -203,7 +244,7 @@ export function ShiftFormModal({ shift, open, onOpenChange }: ShiftFormModalProp
             >
               Cancel
             </Button>
-            <Button type="submit" loading={pending}>
+            <Button type="submit" loading={pending} disabled={!canSubmit}>
               {pending ? (isEdit ? "Saving…" : "Creating…") : (isEdit ? "Save changes" : "Create shift")}
             </Button>
           </DialogFooter>

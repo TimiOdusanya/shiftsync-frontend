@@ -3,100 +3,166 @@
 import * as React from "react";
 import { Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-
-const CUSTOM_VALUE = "__custom__";
-
-/** Preset times from 00:00 to 23:30 in 30-min steps. */
-function getPresetTimes(): string[] {
-  const times: string[] = [];
-  for (let h = 0; h < 24; h++) {
-    times.push(`${String(h).padStart(2, "0")}:00`);
-    times.push(`${String(h).padStart(2, "0")}:30`);
-  }
-  return times;
-}
-
-const PRESETS = getPresetTimes();
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 /** Returns time string HH:mm for use in API (ISO date + time). */
 export function toTimeString(date: Date): string {
   return date.toTimeString().slice(0, 5);
 }
 
-export interface TimePickerProps
-  extends Omit<
-    React.InputHTMLAttributes<HTMLInputElement>,
-    "value" | "onChange"
-  > {
-  value?: string;
-  onChange?: (value: string) => void;
+/** Parse HH:mm to hour (0-23) and minute (0-59). */
+function parseTime(value: string): { hour: number; minute: number } {
+  const fallback = { hour: 9, minute: 0 };
+  if (!value || value.length < 5) return fallback;
+  const [hStr, mStr] = value.split(":");
+  const hour = parseInt(hStr, 10);
+  const minute = parseInt(mStr, 10);
+  if (Number.isNaN(hour) || Number.isNaN(minute)) return fallback;
+  return {
+    hour: Math.min(23, Math.max(0, hour)),
+    minute: Math.min(59, Math.max(0, minute)),
+  };
 }
 
-export const TimePicker = React.forwardRef<HTMLDivElement, TimePickerProps>(
-  ({ value = "", onChange, className, disabled, id, ...props }, ref) => {
-    const isPreset = value && PRESETS.includes(value);
-    const selectValue = isPreset ? value : CUSTOM_VALUE;
-    const [customTime, setCustomTime] = React.useState(value && !isPreset ? value : "09:00");
+/** Format hour, minute to HH:mm. */
+function toHHmm(hour: number, minute: number): string {
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+}
 
-    const displayValue = isPreset ? value : customTime;
+/** Format HH:mm for display (24-hour, e.g. "09:00", "14:30"). */
+function formatDisplay(value: string): string {
+  if (!value || value.length < 5) return "";
+  const { hour, minute } = parseTime(value);
+  return toHHmm(hour, minute);
+}
 
-    const handleSelectChange = (v: string) => {
-      if (v === CUSTOM_VALUE) {
-        onChange?.(customTime);
-      } else {
-        onChange?.(v);
+const HOURS_24 = Array.from({ length: 24 }, (_, i) => i);
+const MINUTES = Array.from({ length: 60 }, (_, i) => i);
+
+const selectClass = cn(
+  "h-10 rounded-lg border border-input bg-background pl-3 pr-8 py-2 text-sm text-foreground",
+  "transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer",
+  "min-w-0"
+);
+
+export interface TimePickerProps {
+  value?: string;
+  onChange?: (value: string) => void;
+  disabled?: boolean;
+  id?: string;
+  "aria-label"?: string;
+  className?: string;
+}
+
+export const TimePicker = React.forwardRef<HTMLButtonElement, TimePickerProps>(
+  (
+    {
+      value = "",
+      onChange,
+      className,
+      disabled,
+      id,
+      "aria-label": ariaLabel,
+    },
+    ref
+  ) => {
+    const [open, setOpen] = React.useState(false);
+    const parsed = parseTime(value);
+    const [hour, setHour] = React.useState(parsed.hour);
+    const [minute, setMinute] = React.useState(parsed.minute);
+
+    React.useEffect(() => {
+      const p = parseTime(value);
+      setHour(p.hour);
+      setMinute(p.minute);
+    }, [value]);
+
+    const handleApply = () => {
+      onChange?.(toHHmm(hour, minute));
+      setOpen(false);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleApply();
       }
     };
 
-    const handleCustomTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-      const v = e.target.value;
-      setCustomTime(v);
-      onChange?.(v);
-    };
-
-    React.useEffect(() => {
-      if (!isPreset && value) setCustomTime(value);
-    }, [value, isPreset]);
-
     return (
-      <div ref={ref} className={cn("flex flex-col gap-2", className)}>
-        <Select
-          value={selectValue}
-          onValueChange={handleSelectChange}
-          disabled={disabled}
-        >
-          <SelectTrigger id={id} className="w-full">
-            <Clock className="mr-2 h-4 w-4 shrink-0 opacity-50" />
-            <SelectValue placeholder="Select time" />
-          </SelectTrigger>
-          <SelectContent>
-            {PRESETS.map((t) => (
-              <SelectItem key={t} value={t}>
-                {t}
-              </SelectItem>
-            ))}
-            <SelectItem value={CUSTOM_VALUE}>Custom</SelectItem>
-          </SelectContent>
-        </Select>
-        {selectValue === CUSTOM_VALUE && (
-          <Input
-            type="time"
-            value={displayValue}
-            onChange={handleCustomTimeChange}
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            ref={ref}
+            type="button"
+            variant="outline"
             disabled={disabled}
-            className="w-full"
-            {...props}
-          />
-        )}
-      </div>
+            id={id}
+            aria-label={ariaLabel}
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            className={cn(
+              "w-full justify-start text-left font-normal",
+              !value && "text-muted-foreground",
+              className
+            )}
+          >
+            <Clock className="mr-2 h-4 w-4 shrink-0 text-info" />
+            {value ? formatDisplay(value) : "Select time"}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          className="w-auto p-0"
+          align="start"
+          onCloseAutoFocus={(e) => e.preventDefault()}
+        >
+          <div className="p-4">
+            <div
+              className="flex flex-nowrap items-center gap-2"
+              role="group"
+              aria-label="Select time (24-hour)"
+              onKeyDown={handleKeyDown}
+            >
+              <select
+                aria-label="Hour (0-23)"
+                value={hour}
+                onChange={(e) => setHour(Number(e.target.value))}
+                disabled={disabled}
+                className={cn(selectClass, "w-[5.5rem]")}
+              >
+                {HOURS_24.map((h) => (
+                  <option key={h} value={h}>
+                    {String(h).padStart(2, "0")}
+                  </option>
+                ))}
+              </select>
+              <span className="shrink-0 text-muted-foreground font-medium">:</span>
+              <select
+                aria-label="Minute"
+                value={minute}
+                onChange={(e) => setMinute(Number(e.target.value))}
+                disabled={disabled}
+                className={cn(selectClass, "w-[5.5rem]")}
+              >
+                {MINUTES.map((m) => (
+                  <option key={m} value={m}>
+                    {String(m).padStart(2, "0")}
+                  </option>
+                ))}
+              </select>
+              <Button type="button" size="sm" className="shrink-0" onClick={handleApply}>
+                Apply
+              </Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
     );
   }
 );

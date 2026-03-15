@@ -2,30 +2,18 @@
 
 import { useShifts } from "@/hooks/useShifts";
 import { ShiftCard } from "./ShiftCard";
+import { ShiftListSkeleton } from "./ShiftListSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Calendar } from "lucide-react";
 import type { Shift, ShiftFilters } from "@/types";
-
-function ShiftListSkeleton() {
-  return (
-    <div className="space-y-8">
-      <Skeleton className="h-4 w-32" />
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3, 4, 5, 6].map((i) => (
-          <Skeleton key={i} className="h-48 rounded-xl" />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export interface ShiftListProps {
   filters?: ShiftFilters;
   onEdit: (shift: Shift) => void;
+  canManageSchedule?: boolean;
 }
 
-export function ShiftList({ filters, onEdit }: ShiftListProps) {
+export function ShiftList({ filters, onEdit, canManageSchedule = false }: ShiftListProps) {
   const { data: shifts = [], isLoading } = useShifts(filters);
 
   if (isLoading) {
@@ -35,9 +23,13 @@ export function ShiftList({ filters, onEdit }: ShiftListProps) {
   if (shifts.length === 0) {
     return (
       <EmptyState
-        icon={<Calendar className="h-6 w-6" />}
+        icon={<Calendar className="h-6 w-6 text-primary" />}
         title="No shifts in this range"
-        description="Create a shift or adjust the date range to see shifts here."
+        description={
+          canManageSchedule
+            ? "Create a shift or adjust the date range to see shifts here."
+            : "Adjust the date range to see shifts here."
+        }
       />
     );
   }

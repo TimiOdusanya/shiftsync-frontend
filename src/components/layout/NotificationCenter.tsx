@@ -8,7 +8,7 @@ import {
   useMarkAllNotificationsRead,
 } from "@/hooks/useNotifications";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { NotificationCenterListSkeleton } from "./NotificationCenterSkeleton";
 import { formatDate } from "@/lib/utils";
 import { Bell, BellDot } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -34,7 +34,7 @@ export function NotificationCenter() {
         {unreadCount > 0 ? (
           <BellDot className="h-5 w-5 text-primary" />
         ) : (
-          <Bell className="h-5 w-5" />
+          <Bell className="h-5 w-5 text-warning/80" />
         )}
         {unreadCount > 0 && (
           <span
@@ -74,18 +74,10 @@ export function NotificationCenter() {
             </div>
             <div className="flex-1 overflow-y-auto">
               {isLoading ? (
-                <div className="space-y-px">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="space-y-1.5 px-4 py-3">
-                      <Skeleton className="h-3.5 w-40" />
-                      <Skeleton className="h-3 w-56" />
-                      <Skeleton className="h-3 w-20" />
-                    </div>
-                  ))}
-                </div>
+                <NotificationCenterListSkeleton />
               ) : notifications.length === 0 ? (
                 <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
-                  <Bell className="h-6 w-6 text-muted-foreground/50" />
+                  <Bell className="h-6 w-6 text-warning/50" />
                   <p className="text-sm text-muted-foreground">You're all caught up</p>
                 </div>
               ) : (

@@ -1,13 +1,19 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useLocations } from "@/hooks/useLocations";
 import { useUsers } from "@/hooks/useUsers";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
+import { useLocationFilter } from "@/store/location-filter-store";
 import { useOvertimeProjection, useFairness } from "@/hooks/useAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/shared/Badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { OvertimeCardSkeleton } from "@/features/analytics/components/OvertimeCardSkeleton";
+import { FairnessCardSkeleton } from "@/features/analytics/components/FairnessCardSkeleton";
+import { FairnessDistributionChart } from "@/features/analytics/components/FairnessDistributionChart";
+import { OvertimeVisual } from "@/features/analytics/components/OvertimeVisual";
 import {
   Select,
   SelectContent,
@@ -16,7 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 function getWeekRange(weekOffset: number) {
@@ -29,10 +35,20 @@ function getWeekRange(weekOffset: number) {
 }
 
 export default function AnalyticsPage() {
+  const router = useRouter();
   const { user: currentUser } = useAuth();
+  const { canAccessAnalytics } = usePermissions();
   const { data: locations = [] } = useLocations();
+
+  useEffect(() => {
+    if (currentUser != null && !canAccessAnalytics) router.replace("/schedule");
+  }, [currentUser, canAccessAnalytics, router]);
+
+  if (currentUser != null && !canAccessAnalytics) return null;
+  const { locationId: contextLocationId, setLocationId: setContextLocationId } = useLocationFilter();
+  const locationId = contextLocationId || (locations[0]?.id ?? "");
+  const setLocationId = setContextLocationId;
   const { data: users = [] } = useUsers({});
-  const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
   const [userId, setUserId] = useState(currentUser?.id ?? "");
   const [weekOffset, setWeekOffset] = useState(0);
   const { start: weekStart, end: weekEnd } = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
@@ -46,20 +62,45 @@ export default function AnalyticsPage() {
     weekStart,
     weekEnd
   );
+
+  const [fairnessStart, fairnessEnd] = useMemo(() => {
+    if (!periodStart || !periodEnd) return [periodStart, periodEnd];
+    return periodStart <= periodEnd
+      ? [periodStart, periodEnd]
+      : [periodEnd, periodStart];
+  }, [periodStart, periodEnd]);
+
   const { data: fairness, isLoading: fairnessLoading } = useFairness(
     locationId || null,
-    periodStart,
-    periodEnd
+    fairnessStart,
+    fairnessEnd
   );
 
   const maxHours = fairness?.distribution?.reduce((m, d) => Math.max(m, d.totalHours), 0) ?? 1;
+  const chartDistribution = useMemo(() => {
+    if (!fairness?.distribution || !users.length) return [];
+    return fairness.distribution.map((d) => {
+      const u = users.find((u) => u.id === d.userId);
+      return {
+        userId: d.userId,
+        name: u ? `${u.firstName} ${u.lastName}` : d.userId.slice(0, 8),
+        totalHours: d.totalHours,
+        premiumHours: d.premiumHours,
+        regularHours: Math.max(0, d.totalHours - d.premiumHours),
+      };
+    });
+  }, [fairness?.distribution, users]);
+  const weekLabel = `${weekStart} – ${weekEnd}`;
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Analytics</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Hours tracking, overtime, and fairness</p>
-      </div>
+      <header className="flex min-w-0 items-start gap-2 sm:gap-3">
+        <BarChart3 className="mt-1 h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold leading-6 tracking-tight text-foreground sm:text-lg">Analytics</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Hours tracking, overtime, and fairness</p>
+        </div>
+      </header>
 
       <Card>
         <CardHeader>
@@ -89,7 +130,7 @@ export default function AnalyticsPage() {
                 onClick={() => setWeekOffset((o) => o - 1)}
                 aria-label="Previous week"
               >
-                <ChevronLeft className="h-4 w-4" />
+                <ChevronLeft className="h-4 w-4 text-primary/80" />
               </Button>
               <span className="min-w-[120px] border-x border-border px-3 py-1.5 text-center text-sm text-muted-foreground">
                 {weekStart} – {weekEnd}
@@ -101,23 +142,21 @@ export default function AnalyticsPage() {
                 onClick={() => setWeekOffset((o) => o + 1)}
                 aria-label="Next week"
               >
-                <ChevronRight className="h-4 w-4" />
+                <ChevronRight className="h-4 w-4 text-primary/80" />
               </Button>
             </div>
           </div>
           {overtimeLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-4 w-24" />
-            </div>
+            <OvertimeCardSkeleton />
           ) : overtime ? (
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <span className="text-3xl font-semibold text-foreground">
                   {overtime.projectedHours.toFixed(1)}
                 </span>
                 <span className="text-sm text-muted-foreground">projected hours this week</span>
               </div>
+              <OvertimeVisual projectedHours={overtime.projectedHours} weekLabel={weekLabel} />
               {overtime.warnings.length > 0 && (
                 <ul className="space-y-1.5">
                   {overtime.warnings.map((w, i) => (
@@ -170,14 +209,7 @@ export default function AnalyticsPage() {
             />
           </div>
           {fairnessLoading ? (
-            <div className="space-y-4">
-              <Skeleton className="h-4 w-32" />
-              <div className="space-y-3">
-                {[1, 2, 3, 4].map((i) => (
-                  <Skeleton key={i} className="h-8 w-full" />
-                ))}
-              </div>
-            </div>
+            <FairnessCardSkeleton />
           ) : fairness ? (
             <div className="space-y-4">
               <div className="flex items-center gap-3">
@@ -186,33 +218,11 @@ export default function AnalyticsPage() {
                 </span>
                 <span className="text-sm text-muted-foreground">fairness score</span>
               </div>
-              <div className="space-y-3">
-                <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                  Hours per staff
-                </p>
-                {fairness.distribution.map((d) => (
-                  <div key={d.userId} className="space-y-1.5">
-                    <div className="flex justify-between text-sm">
-                      <span className="font-medium text-foreground">
-                        {users.find((u) => u.id === d.userId)?.firstName}{" "}
-                        {users.find((u) => u.id === d.userId)?.lastName ?? d.userId}
-                      </span>
-                      <span className="tabular-nums text-muted-foreground">
-                        {d.totalHours.toFixed(1)}h
-                        {d.premiumHours > 0 && (
-                          <span className="ml-1.5 text-xs">({d.premiumHours.toFixed(1)} premium)</span>
-                        )}
-                      </span>
-                    </div>
-                    <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary transition-all duration-500"
-                        style={{ width: `${Math.min(100, (d.totalHours / maxHours) * 100)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              {chartDistribution.length > 0 ? (
+                <FairnessDistributionChart data={chartDistribution} maxHours={maxHours} />
+              ) : (
+                <p className="text-sm text-muted-foreground">No shift data in this period</p>
+              )}
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">Select a location to see distribution</p>

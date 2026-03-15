@@ -20,6 +20,7 @@ import {
 import { useAssignStaff } from "@/hooks/useAssignments";
 import { useUsers } from "@/hooks/useUsers";
 import { t } from "@/lib/toast";
+import { requiredId } from "@/lib/validation";
 import type { Shift, ConstraintViolation } from "@/types";
 
 export interface AssignStaffModalProps {
@@ -58,11 +59,26 @@ export function AssignStaffModal({ shift, open, onOpenChange }: AssignStaffModal
     e.preventDefault();
     if (!shift) return;
     setViolation(null);
+
+    const staffError = requiredId(userId, "a staff member");
+    if (staffError) {
+      setViolation({ rule: "REQUIRED", message: staffError });
+      return;
+    }
+
+    if (needsOverrideReason && !overrideReason.trim()) {
+      setViolation({
+        rule: "OVERTIME",
+        message: "Override reason is required for 7th consecutive day.",
+      });
+      return;
+    }
+
     try {
       const result = await assignMutation.mutateAsync({
         shiftId: shift.id,
-        userId,
-        overrideReason: needsOverrideReason ? overrideReason : undefined,
+        userId: userId.trim(),
+        overrideReason: needsOverrideReason ? overrideReason.trim() : undefined,
       });
       if (result.success) {
         t.success("Staff assigned successfully");
@@ -71,7 +87,9 @@ export function AssignStaffModal({ shift, open, onOpenChange }: AssignStaffModal
         setViolation(result.violation);
       }
     } catch (err) {
-      setViolation({ rule: "ERROR", message: (err as Error).message });
+      const e = err as Error & { violation?: ConstraintViolation };
+      if (e.violation) setViolation(e.violation);
+      else setViolation({ rule: "ERROR", message: e.message });
     }
   }
 
@@ -92,9 +110,14 @@ export function AssignStaffModal({ shift, open, onOpenChange }: AssignStaffModal
           <FormField
             label="Staff member"
             name="staff"
+            required
             error={violation?.message}
           >
-            <Select value={userId} onValueChange={setUserId}>
+            <Select
+              value={userId || undefined}
+              onValueChange={(v) => setUserId(v ?? "")}
+              required
+            >
               <SelectTrigger id="staff" aria-invalid={!!violation}>
                 <SelectValue placeholder="Select staff member" />
               </SelectTrigger>

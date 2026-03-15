@@ -7,9 +7,9 @@ import { useSocket } from "@/hooks/useSocket";
 import { useRealtimeSchedule } from "@/hooks/useRealtimeSchedule";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { DashboardLayoutSkeleton } from "@/app/(dashboard)/DashboardLayoutSkeleton";
 import { useSidebar } from "@/store/sidebar-store";
 import { cn } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
 
 export default function DashboardLayout({
   children,
@@ -29,29 +29,7 @@ export default function DashboardLayout({
   }, [isLoading, isAuthenticated, router]);
 
   if (isLoading) {
-    return (
-      <div className="flex min-h-screen flex-col bg-background">
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-4">
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-8 w-8 rounded-lg" />
-        </header>
-        <div className="flex flex-1">
-          <aside className="hidden w-60 border-r border-border bg-surface md:block">
-            <div className="flex flex-col gap-2 p-2">
-              {[1, 2, 3, 4, 5, 6].map((i) => (
-                <Skeleton key={i} className="h-10 w-full rounded-lg" />
-              ))}
-            </div>
-          </aside>
-          <main className="flex-1 p-6">
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-64 w-full rounded-xl" />
-            </div>
-          </main>
-        </div>
-      </div>
-    );
+    return <DashboardLayoutSkeleton />;
   }
 
   if (!isAuthenticated) return null;

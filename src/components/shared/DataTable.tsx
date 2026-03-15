@@ -23,23 +23,26 @@ export interface DataTableProps<T> {
 
 function TableSkeleton({ rows = 5, cols = 4 }: { rows?: number; cols?: number }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-border">
+    <div className="overflow-x-auto rounded-xl border border-border bg-card">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border bg-muted/30">
             {Array.from({ length: cols }).map((_, i) => (
-              <th key={i} className="px-4 py-3 text-left">
-                <Skeleton className="h-4 w-24" />
+              <th key={i} className="px-4 py-3 text-left font-medium">
+                <Skeleton className="h-4 w-20" />
               </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {Array.from({ length: rows }).map((_, rowIdx) => (
-            <tr key={rowIdx} className="border-b border-border last:border-0">
+            <tr
+              key={rowIdx}
+              className="border-b border-border last:border-0 transition-colors hover:bg-muted/40"
+            >
               {Array.from({ length: cols }).map((_, colIdx) => (
                 <td key={colIdx} className="px-4 py-3">
-                  <Skeleton className="h-4 w-full max-w-[120px]" />
+                  <Skeleton className="h-4 w-full max-w-[140px]" />
                 </td>
               ))}
             </tr>

@@ -17,17 +17,17 @@ function Calendar({
   return (
     <DayPicker
       showOutsideDays={showOutsideDays}
-      className={cn("p-3", className)}
+      className={cn("min-w-[280px] p-3", className)}
       classNames={{
         root: "rdp",
         months: "flex flex-col gap-4",
         month: "flex flex-col gap-3",
-        caption: "relative flex items-center justify-between px-1 pb-3",
-        caption_label: "text-sm font-semibold text-foreground",
-        nav: "flex items-center gap-1",
+        caption: "relative flex items-center justify-between gap-2 pl-10 pr-10 pb-3",
+        caption_label: "flex-1 text-center text-sm font-semibold text-foreground min-w-0",
+        nav: "flex shrink-0 items-center gap-1",
         nav_button: cn(buttonVariants({ variant: "outline" }), "h-8 w-8 p-0"),
-        nav_button_previous: "absolute left-1",
-        nav_button_next: "absolute right-1",
+        nav_button_previous: "",
+        nav_button_next: "",
         nav_icon: "h-4 w-4",
         table: "w-full border-collapse space-y-1",
         head_row: "flex",
@@ -50,8 +50,8 @@ function Calendar({
         ...classNames,
       }}
       components={{
-        IconLeft: () => <ChevronLeft className="h-4 w-4" />,
-        IconRight: () => <ChevronRight className="h-4 w-4" />,
+        IconLeft: () => <ChevronLeft className="h-4 w-4 text-primary/80" />,
+        IconRight: () => <ChevronRight className="h-4 w-4 text-primary/80" />,
       }}
       {...props}
     />

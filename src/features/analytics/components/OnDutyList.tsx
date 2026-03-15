@@ -2,6 +2,7 @@
 
 import { useOnDuty } from "@/hooks/useAnalytics";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { OnDutyListSkeleton } from "./OnDutyListSkeleton";
 import { formatTime } from "@/lib/utils";
 
 export interface OnDutyListProps {
@@ -11,7 +12,7 @@ export interface OnDutyListProps {
 export function OnDutyList({ locationId }: OnDutyListProps) {
   const { data: byLocation = {}, isLoading } = useOnDuty(locationId);
 
-  if (isLoading) return <p className="text-muted-foreground">Loading…</p>;
+  if (isLoading) return <OnDutyListSkeleton />;
 
   const entries = Object.entries(byLocation) as [string, Array<{ userId: string; user?: { firstName?: string; lastName?: string }; startAt?: string; endAt?: string }>][];
 

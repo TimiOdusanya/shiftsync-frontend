@@ -272,7 +272,7 @@ export default function HomePage() {
               {features.map((f) => (
                 <div
                   key={f.title}
-                  className="group rounded-2xl border border-border bg-card p-6 transition-all duration-200 hover:shadow-card-hover hover:-translate-y-0.5"
+                  className="group rounded-2xl border border-border bg-card p-6"
                 >
                   <div className={cn("mb-4 inline-flex rounded-xl p-2.5", f.bg)}>
                     <f.icon className={cn("h-5 w-5", f.color)} aria-hidden />

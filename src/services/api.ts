@@ -1,3 +1,5 @@
+import { getStoredToken } from "@/store/authStore";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000/api";
 
 export interface RequestConfig extends RequestInit {
@@ -5,8 +7,7 @@ export interface RequestConfig extends RequestInit {
 }
 
 async function getToken(): Promise<string | null> {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("accessToken");
+  return getStoredToken();
 }
 
 function buildUrl(path: string, params?: RequestConfig["params"]): string {
@@ -32,8 +33,15 @@ export async function api<T>(path: string, config: RequestConfig = {}): Promise<
 
   const res = await fetch(url, { ...init, headers });
   if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error((body as { error?: string }).error ?? res.statusText);
+    const body = await res.json().catch(() => ({})) as Record<string, unknown>;
+    const message =
+      (body?.violation as { message?: string } | undefined)?.message ??
+      (body?.message as string | undefined) ??
+      (body?.error as string | undefined) ??
+      res.statusText;
+    const err = new Error(message) as Error & { violation?: unknown };
+    if (body?.violation) err.violation = body.violation;
+    throw err;
   }
   const text = await res.text();
   if (!text) return undefined as T;

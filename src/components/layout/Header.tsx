@@ -22,13 +22,13 @@ import {
 import { cn } from "@/lib/utils";
 import { Menu, LogOut } from "lucide-react";
 import { useSidebar } from "@/store/sidebar-store";
-import { useState } from "react";
+import { useLocationFilter } from "@/store/location-filter-store";
 
 export function Header({ className }: { className?: string }) {
   const { user, logout } = useAuth();
   const { data: locations = [] } = useLocations();
   const { toggle } = useSidebar();
-  const [locationId, setLocationId] = useState<string>("");
+  const { locationId, setLocationId } = useLocationFilter();
 
   return (
     <header
@@ -45,7 +45,7 @@ export function Header({ className }: { className?: string }) {
           onClick={toggle}
           aria-label="Toggle sidebar"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-5 w-5 text-primary/80" />
         </Button>
         <Link href="/schedule" aria-label="ShiftSync home">
           <Logo size="sm" showText={true} />
@@ -55,6 +55,7 @@ export function Header({ className }: { className?: string }) {
             <Select
               value={locationId || "__all__"}
               onValueChange={(v) => setLocationId(v === "__all__" ? "" : v)}
+              aria-label="Filter by location"
             >
               <SelectTrigger className="h-8 text-xs">
                 <SelectValue placeholder="All locations" />
@@ -97,11 +98,11 @@ export function Header({ className }: { className?: string }) {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="ml-1"
+                  className="ml-1 group"
                   onClick={() => logout()}
                   aria-label="Log out"
                 >
-                  <LogOut className="h-4 w-4" />
+                  <LogOut className="h-4 w-4 text-muted-foreground group-hover:text-danger" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Log out</TooltipContent>

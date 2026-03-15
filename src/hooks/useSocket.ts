@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createSocket, SOCKET_EVENTS } from "@/lib/socket";
-import { getStoredToken } from "@/services/auth";
+import { getStoredToken } from "@/store/authStore";
 
 export type SocketEventHandler = (payload: unknown) => void;
 

@@ -1,7 +1,15 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useLocations } from "@/hooks/useLocations";
+import { useLocationFilter } from "@/store/location-filter-store";
+import { usePermissions } from "@/hooks/usePermissions";
+import {
+  useSelectedShiftId,
+  useShiftFormOpen,
+  useShiftFormActions,
+} from "@/store/shiftInteractionStore";
+import { useShift } from "@/hooks/useShifts";
 import { ShiftList } from "@/features/scheduling/components/ShiftList";
 import { ShiftFormModal } from "@/features/scheduling/components/ShiftFormModal";
 import { Button } from "@/components/ui/button";
@@ -12,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Shift, ShiftFilters } from "@/types";
 
 function getWeekRange(weekOffset: number) {
@@ -38,11 +46,14 @@ function formatWeekLabel(start: string, end: string) {
 
 export default function SchedulePage() {
   const { data: locations = [] } = useLocations();
+  const { locationId, setLocationId } = useLocationFilter();
+  const { canManageSchedule } = usePermissions();
   const [weekOffset, setWeekOffset] = useState(0);
   const { start: startDate, end: endDate } = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
-  const [locationId, setLocationId] = useState<string>("");
-  const [formOpen, setFormOpen] = useState(false);
-  const [editingShift, setEditingShift] = useState<Shift | null>(null);
+  const selectedShiftId = useSelectedShiftId();
+  const shiftFormOpen = useShiftFormOpen();
+  const { openShiftForm, closeShiftForm } = useShiftFormActions();
+  const { data: editingShift } = useShift(selectedShiftId);
 
   const filters: ShiftFilters = {
     locationId: locationId || undefined,
@@ -50,22 +61,17 @@ export default function SchedulePage() {
     endDate: `${endDate}T23:59:59.999Z`,
   };
 
-  const handleEdit = useCallback((shift: Shift) => {
-    setEditingShift(shift);
-    setFormOpen(true);
-  }, []);
-
-  const handleCloseForm = useCallback((open: boolean) => {
-    setFormOpen(open);
-    if (!open) setEditingShift(null);
-  }, []);
-
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">Schedule</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Manage shifts across all locations</p>
+        <div className="flex min-w-0 items-start gap-2 sm:gap-3">
+          <Calendar className="mt-1 h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" aria-hidden />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-bold leading-6 tracking-tight text-foreground sm:text-lg">Schedule</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              {canManageSchedule ? "Manage shifts across all locations" : "Your schedule"}
+            </p>
+          </div>
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <div className="w-44">
@@ -94,7 +100,7 @@ export default function SchedulePage() {
               onClick={() => setWeekOffset((o) => o - 1)}
               aria-label="Previous week"
             >
-              <ChevronLeft className="h-4 w-4" />
+              <ChevronLeft className="h-4 w-4 text-primary/80" />
             </Button>
             <span className="min-w-[128px] border-x border-border px-3 py-1.5 text-center text-sm text-muted-foreground">
               {formatWeekLabel(startDate, endDate)}
@@ -106,26 +112,35 @@ export default function SchedulePage() {
               onClick={() => setWeekOffset((o) => o + 1)}
               aria-label="Next week"
             >
-              <ChevronRight className="h-4 w-4" />
+              <ChevronRight className="h-4 w-4 text-primary/80" />
             </Button>
           </div>
-          <Button
-            size="sm"
-            className="gap-1.5"
-            onClick={() => {
-              setEditingShift(null);
-              setFormOpen(true);
-            }}
-          >
-            <Plus className="h-4 w-4" />
-            Add shift
-          </Button>
+          {canManageSchedule && (
+            <Button
+              size="sm"
+              className="gap-1.5"
+              onClick={() => openShiftForm(null)}
+            >
+              <Plus className="h-4 w-4" />
+              Add shift
+            </Button>
+          )}
         </div>
       </div>
 
-      <ShiftList filters={filters} onEdit={handleEdit} />
+      <ShiftList
+        filters={filters}
+        onEdit={(shift: Shift) => openShiftForm(shift.id)}
+        canManageSchedule={canManageSchedule}
+      />
 
-      <ShiftFormModal shift={editingShift} open={formOpen} onOpenChange={handleCloseForm} />
+      <ShiftFormModal
+        shift={editingShift ?? null}
+        open={shiftFormOpen}
+        onOpenChange={(open) => {
+          if (!open) closeShiftForm();
+        }}
+      />
     </div>
   );
 }

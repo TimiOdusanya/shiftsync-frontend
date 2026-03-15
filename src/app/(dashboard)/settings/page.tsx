@@ -6,16 +6,20 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/shared/Badge";
 import { UserAvatar } from "@/components/shared/UserAvatar";
+import { Settings } from "lucide-react";
 
 export default function SettingsPage() {
   const { user } = useAuth();
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Manage your profile and preferences</p>
-      </div>
+      <header className="flex min-w-0 items-start gap-2 sm:gap-3">
+        <Settings className="mt-1 h-5 w-5 shrink-0 text-muted-foreground sm:h-6 sm:w-6" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold leading-6 tracking-tight text-foreground sm:text-lg">Settings</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage your profile and preferences</p>
+        </div>
+      </header>
 
       <Card>
         <CardHeader>

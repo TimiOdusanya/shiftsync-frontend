@@ -4,11 +4,12 @@ import { useState } from "react";
 import { useOpenDrops, useMyDrops } from "@/hooks/useDrops";
 import { useClaimDrop, useApproveDrop, useRejectDrop } from "@/hooks/useDrops";
 import { useLocations } from "@/hooks/useLocations";
+import { useLocationFilter } from "@/store/location-filter-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusTag } from "@/components/shared/StatusTag";
 import { TimezoneDisplay } from "@/components/shared/TimezoneDisplay";
-import { Skeleton } from "@/components/ui/skeleton";
+import { MyDropsCardSkeleton, OpenDropsCardSkeleton } from "@/app/(dashboard)/drops/DropsPageSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import {
   Select,
@@ -18,26 +19,28 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { formatDate } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { LogOut } from "lucide-react";
 
 export default function DropsPage() {
-  const [locationId, setLocationId] = useState<string>("");
+  const { locationId, setLocationId } = useLocationFilter();
   const { data: locations = [] } = useLocations();
   const { data: openDrops = [], isLoading: openLoading } = useOpenDrops(locationId || undefined);
   const { data: myDrops = [], isLoading: myLoading } = useMyDrops();
   const claimDrop = useClaimDrop();
   const approveDrop = useApproveDrop();
   const rejectDrop = useRejectDrop();
-  const { user } = useAuth();
-  const canManage = user?.role === "ADMIN" || user?.role === "MANAGER";
+  const { canManageSchedule: canManage } = usePermissions();
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Drop requests</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Manage shift drops and open claims</p>
-      </div>
+      <header className="flex min-w-0 items-start gap-2 sm:gap-3">
+        <LogOut className="mt-1 h-5 w-5 shrink-0 text-info sm:h-6 sm:w-6" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold leading-6 tracking-tight text-foreground sm:text-lg">Drop requests</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage shift drops and open claims</p>
+        </div>
+      </header>
 
       <Card>
         <CardHeader>
@@ -45,21 +48,10 @@ export default function DropsPage() {
         </CardHeader>
         <CardContent>
           {myLoading ? (
-            <div className="space-y-3">
-              {[1, 2].map((i) => (
-                <div key={i} className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-40" />
-                    <Skeleton className="h-3.5 w-56" />
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                  <Skeleton className="h-6 w-20 rounded-full" />
-                </div>
-              ))}
-            </div>
+            <MyDropsCardSkeleton />
           ) : myDrops.length === 0 ? (
             <EmptyState
-              icon={<LogOut className="h-5 w-5" />}
+              icon={<LogOut className="h-5 w-5 text-info" />}
               title="No drop requests"
               description="Shifts you've dropped will appear here."
             />
@@ -68,7 +60,7 @@ export default function DropsPage() {
               {myDrops.map((d) => (
                 <li
                   key={d.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/40 hover:border-border"
                 >
                   <div className="space-y-1 text-sm">
                     <p className="font-medium text-foreground">
@@ -116,21 +108,10 @@ export default function DropsPage() {
         </CardHeader>
         <CardContent>
           {openLoading ? (
-            <div className="space-y-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex items-center justify-between rounded-lg border border-border p-4">
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-3.5 w-64" />
-                    <Skeleton className="h-3 w-28" />
-                  </div>
-                  <Skeleton className="h-9 w-16 rounded-lg" />
-                </div>
-              ))}
-            </div>
+            <OpenDropsCardSkeleton />
           ) : openDrops.length === 0 ? (
             <EmptyState
-              icon={<LogOut className="h-5 w-5" />}
+              icon={<LogOut className="h-5 w-5 text-info" />}
               title="No open shifts to claim"
               description="Dropped shifts available for claiming will appear here."
             />
@@ -139,7 +120,7 @@ export default function DropsPage() {
               {openDrops.map((d) => (
                 <li
                   key={d.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/40 hover:border-border"
                 >
                   <div className="space-y-1 text-sm">
                     <p className="font-medium text-foreground">

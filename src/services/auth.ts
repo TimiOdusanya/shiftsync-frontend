@@ -1,41 +1,28 @@
 import { apiClient } from "./api";
+import { getStoredToken } from "@/store/authStore";
 import type { AuthResponse, User } from "@/types";
 
 const AUTH_ME_KEY = ["auth", "me"] as const;
-const AUTH_STORAGE_KEY = "accessToken";
 
 export async function login(email: string, password: string): Promise<AuthResponse> {
-  const data = await apiClient.post<AuthResponse>("/auth/login", { email, password });
-  if (typeof window !== "undefined" && data.accessToken) {
-    localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
-  }
-  return data;
+  return apiClient.post<AuthResponse>("/auth/login", { email, password });
 }
 
-export async function logout(): Promise<void> {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-  }
-}
-
-export function getStoredToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(AUTH_STORAGE_KEY);
-}
+export async function logout(): Promise<void> {}
 
 export async function fetchMe(): Promise<User | null> {
   const token = getStoredToken();
   if (!token) return null;
-  const data = await apiClient.get<User>("/auth/me");
-  return data;
+  return apiClient.get<User>("/auth/me");
 }
 
 export async function refreshToken(): Promise<AuthResponse | null> {
   const token = getStoredToken();
   if (!token) return null;
   const data = await apiClient.post<AuthResponse>("/auth/refresh", { refreshToken: token });
-  if (data.accessToken && typeof window !== "undefined") {
-    localStorage.setItem(AUTH_STORAGE_KEY, data.accessToken);
+  if (data.accessToken) {
+    const { useAuthStore } = await import("@/store/authStore");
+    useAuthStore.getState().setAuth(data.accessToken, data.user);
   }
   return data;
 }

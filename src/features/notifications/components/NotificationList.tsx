@@ -1,10 +1,10 @@
 "use client";
 
 import { useNotifications, useMarkNotificationRead } from "@/hooks/useNotifications";
-import { formatDate } from "@/lib/utils";
-import { Skeleton } from "@/components/ui/skeleton";
+import { formatDate, formatRelativeTime } from "@/lib/utils";
+import { NotificationListSkeleton } from "./NotificationListSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { Bell } from "lucide-react";
+import { Bell, BellRing } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function NotificationList() {
@@ -12,23 +12,13 @@ export function NotificationList() {
   const markRead = useMarkNotificationRead();
 
   if (isLoading) {
-    return (
-      <div className="rounded-xl border border-border bg-card divide-y divide-border overflow-hidden">
-        {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="space-y-1.5 px-5 py-4">
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-3.5 w-72" />
-            <Skeleton className="h-3 w-24" />
-          </div>
-        ))}
-      </div>
-    );
+    return <NotificationListSkeleton />;
   }
 
   if (notifications.length === 0) {
     return (
       <EmptyState
-        icon={<Bell className="h-6 w-6" />}
+        icon={<Bell className="h-6 w-6 text-warning" />}
         title="You're all caught up"
         description="New notifications will appear here."
       />
@@ -36,30 +26,64 @@ export function NotificationList() {
   }
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border bg-card divide-y divide-border">
-      {notifications.map((n) => (
-        <div
-          key={n.id}
-          className={cn(
-            "flex items-start gap-3 px-5 py-4 transition-colors cursor-pointer hover:bg-muted/30",
-            !n.readAt && "bg-primary/[0.03]"
-          )}
-          onClick={() => { if (!n.readAt) markRead.mutate(n.id); }}
-        >
-          {!n.readAt && (
-            <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-primary" aria-hidden />
-          )}
-          <div className={cn("min-w-0", n.readAt && "ml-5")}>
-            <p className={cn("text-sm text-foreground", !n.readAt && "font-medium")}>
-              {n.title}
-            </p>
-            {n.body && (
-              <p className="mt-0.5 text-sm text-muted-foreground">{n.body}</p>
+    <div className="space-y-3">
+      {notifications.map((n) => {
+        const isUnread = !n.readAt;
+        return (
+          <button
+            key={n.id}
+            type="button"
+            onClick={() => {
+              if (isUnread) markRead.mutate(n.id);
+            }}
+            className={cn(
+              "group relative w-full rounded-xl border text-left transition-all duration-200",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              isUnread
+                ? "border-primary/20 bg-primary/[0.04] shadow-sm hover:border-primary/30 hover:bg-primary/[0.06]"
+                : "border-border bg-card hover:border-border-strong "
             )}
-            <p className="mt-1 text-xs text-muted-foreground/70">{formatDate(n.createdAt)}</p>
-          </div>
-        </div>
-      ))}
+          >
+            {isUnread && (
+              <span
+                className="absolute left-0 top-0 bottom-0 w-1 rounded-l-xl bg-primary"
+                aria-hidden
+              />
+            )}
+            <div className={cn("flex items-start gap-4 px-5 py-4", isUnread && "pl-6")}>
+              <div
+                className={cn(
+                  "flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-colors",
+                  isUnread ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
+                )}
+              >
+                <BellRing className="h-5 w-5" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p
+                  className={cn(
+                    "text-sm leading-snug",
+                    isUnread ? "font-semibold text-foreground" : "font-medium text-foreground"
+                  )}
+                >
+                  {n.title}
+                </p>
+                {n.body && (
+                  <p className="mt-1 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                    {n.body}
+                  </p>
+                )}
+                <p
+                  className="mt-2 text-xs text-muted-foreground/80"
+                  title={formatDate(n.createdAt)}
+                >
+                  {formatRelativeTime(n.createdAt)}
+                </p>
+              </div>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 }

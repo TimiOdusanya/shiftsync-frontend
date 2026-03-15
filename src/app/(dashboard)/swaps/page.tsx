@@ -11,38 +11,16 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusTag } from "@/components/shared/StatusTag";
-import { Skeleton } from "@/components/ui/skeleton";
+import { SwapListSkeleton } from "@/app/(dashboard)/swaps/SwapsPageSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { TimezoneDisplay } from "@/components/shared/TimezoneDisplay";
 import { formatDate } from "@/lib/utils";
-import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { RefreshCw } from "lucide-react";
-
-function SwapsSkeleton() {
-  return (
-    <div className="space-y-3">
-      {[1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className="flex items-center justify-between rounded-lg border border-border p-4"
-        >
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-3.5 w-64" />
-            <Skeleton className="h-3 w-28" />
-          </div>
-          <div className="flex gap-2">
-            <Skeleton className="h-6 w-20 rounded-full" />
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
 
 export default function SwapsPage() {
   const { data, isLoading } = useSwapRequests();
-  const { user } = useAuth();
+  const { canManageSchedule: canManage } = usePermissions();
   const acceptSwap = useAcceptSwap();
   const rejectSwap = useRejectSwap();
   const approveSwap = useApproveSwap();
@@ -51,14 +29,16 @@ export default function SwapsPage() {
 
   const initiated = data?.initiated ?? [];
   const received = data?.received ?? [];
-  const canManage = user?.role === "ADMIN" || user?.role === "MANAGER";
 
   return (
     <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-foreground">Shift swaps</h1>
-        <p className="mt-1 text-sm text-muted-foreground">Manage incoming and outgoing swap requests</p>
-      </div>
+      <header className="flex min-w-0 items-start gap-2 sm:gap-3">
+        <RefreshCw className="mt-1 h-5 w-5 shrink-0 text-info sm:h-6 sm:w-6" aria-hidden />
+        <div className="min-w-0 flex-1">
+          <h1 className="text-lg font-bold leading-6 tracking-tight text-foreground sm:text-lg">Shift swaps</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Manage incoming and outgoing swap requests</p>
+        </div>
+      </header>
 
       <Card>
         <CardHeader>
@@ -66,10 +46,10 @@ export default function SwapsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <SwapsSkeleton />
+            <SwapListSkeleton />
           ) : initiated.length === 0 ? (
             <EmptyState
-              icon={<RefreshCw className="h-5 w-5" />}
+              icon={<RefreshCw className="h-5 w-5 text-info" />}
               title="No swap requests sent"
               description="Swap requests you've initiated will appear here."
             />
@@ -78,7 +58,7 @@ export default function SwapsPage() {
               {initiated.map((s) => (
                 <li
                   key={s.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/40 hover:border-border"
                 >
                   <div className="space-y-1 text-sm">
                     <p className="font-medium text-foreground">
@@ -120,10 +100,10 @@ export default function SwapsPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <SwapsSkeleton />
+            <SwapListSkeleton />
           ) : received.length === 0 ? (
             <EmptyState
-              icon={<RefreshCw className="h-5 w-5" />}
+              icon={<RefreshCw className="h-5 w-5 text-info" />}
               title="No swap requests received"
               description="Swap requests from colleagues will appear here."
             />
@@ -132,7 +112,7 @@ export default function SwapsPage() {
               {received.map((s) => (
                 <li
                   key={s.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-border bg-card p-4"
+                  className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-muted/20 p-4 transition-colors hover:bg-muted/40 hover:border-border"
                 >
                   <div className="space-y-1 text-sm">
                     <p className="font-medium text-foreground">

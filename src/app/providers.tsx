@@ -1,13 +1,17 @@
 "use client";
 
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
-import { AuthProvider } from "@/store/auth-context";
-import { SidebarProvider } from "@/store/sidebar-store";
+import { useAuthStore } from "@/store/authStore";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    useAuthStore.getState().rehydrate();
+  }, []);
+
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -20,12 +24,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider delayDuration={300}>
-        <AuthProvider>
-          <SidebarProvider>
-            {children}
-            <Toaster />
-          </SidebarProvider>
-        </AuthProvider>
+        {children}
+        <Toaster />
       </TooltipProvider>
     </QueryClientProvider>
   );

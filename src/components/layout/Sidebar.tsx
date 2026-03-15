@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { usePermissions } from "@/hooks/usePermissions";
 import { useSidebar } from "@/store/sidebar-store";
 import { Logo } from "@/components/brand/Logo";
 import {
@@ -23,24 +24,31 @@ import {
   PanelLeft,
 } from "lucide-react";
 
-const navItems = [
-  { href: "/schedule", label: "Schedule", icon: Calendar },
-  { href: "/swaps", label: "Swaps", icon: RefreshCw },
-  { href: "/notifications", label: "Notifications", icon: Bell },
-  { href: "/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/on-duty", label: "On-Duty", icon: Clock },
-  { href: "/settings", label: "Settings", icon: Settings },
+const baseNavItems: Array<{
+  href: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  iconClass?: string;
+  analyticsOnly?: boolean;
+}> = [
+  { href: "/schedule", label: "Schedule", icon: Calendar, iconClass: "text-primary/80" },
+  { href: "/swaps", label: "Swaps", icon: RefreshCw, iconClass: "text-info/80" },
+  { href: "/notifications", label: "Notifications", icon: Bell, iconClass: "text-warning/80" },
+  { href: "/analytics", label: "Analytics", icon: BarChart3, iconClass: "text-primary/80", analyticsOnly: true },
+  { href: "/on-duty", label: "On-Duty", icon: Clock, iconClass: "text-success/80" },
+  { href: "/settings", label: "Settings", icon: Settings, iconClass: "text-muted-foreground" },
 ];
 
 interface NavItemLinkProps {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
+  iconClass?: string;
   isActive: boolean;
   collapsed: boolean;
 }
 
-function NavItemLink({ href, label, icon: Icon, isActive, collapsed }: NavItemLinkProps) {
+function NavItemLink({ href, label, icon: Icon, iconClass, isActive, collapsed }: NavItemLinkProps) {
   const link = (
     <Link
       href={href}
@@ -55,7 +63,7 @@ function NavItemLink({ href, label, icon: Icon, isActive, collapsed }: NavItemLi
       {isActive && (
         <span className="absolute left-0 top-1/2 h-4 w-0.5 -translate-y-1/2 rounded-r bg-primary-foreground/60" />
       )}
-      <Icon className="h-4 w-4 shrink-0" aria-hidden />
+      <Icon className={cn("h-4 w-4 shrink-0", !isActive && iconClass)} aria-hidden />
       {!collapsed && <span>{label}</span>}
     </Link>
   );
@@ -75,7 +83,12 @@ function NavItemLink({ href, label, icon: Icon, isActive, collapsed }: NavItemLi
 export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const { user } = useAuth();
+  const { canAccessAnalytics, canAccessUsers } = usePermissions();
   const { open, collapsed, toggleCollapsed } = useSidebar();
+
+  const navItems = baseNavItems.filter(
+    (item) => !item.analyticsOnly || canAccessAnalytics
+  );
 
   const collapseBtn = (
     <button
@@ -88,9 +101,9 @@ export function Sidebar({ className }: { className?: string }) {
       aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
     >
       {collapsed ? (
-        <PanelLeft className="h-4 w-4 shrink-0" />
+        <PanelLeft className="h-4 w-4 shrink-0 text-primary/70" />
       ) : (
-        <PanelLeftClose className="h-4 w-4 shrink-0" />
+        <PanelLeftClose className="h-4 w-4 shrink-0 text-primary/70" />
       )}
       {!collapsed && <span>Collapse</span>}
     </button>
@@ -120,18 +133,20 @@ export function Sidebar({ className }: { className?: string }) {
               href={item.href}
               label={item.label}
               icon={item.icon}
+              iconClass={item.iconClass}
               isActive={isActive}
               collapsed={collapsed}
             />
           );
         })}
-        {user?.role === "ADMIN" && (
+        {canAccessUsers && (
           <>
             <div className="my-1.5 border-t border-border" />
             <NavItemLink
               href="/users"
               label="Users"
               icon={Users}
+              iconClass="text-primary/80"
               isActive={pathname === "/users"}
               collapsed={collapsed}
             />

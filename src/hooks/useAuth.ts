@@ -1,39 +1,33 @@
 "use client";
 
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import {
-  fetchMe,
-  login as loginService,
-  logout as logoutService,
-  AUTH_ME_KEY,
-} from "@/services/auth";
-import type { User } from "@/types";
+import { useAuthStore } from "@/store/authStore";
+import { login as loginApi, logout as logoutApi } from "@/services/auth";
 
 export function useAuth() {
   const router = useRouter();
-  const queryClient = useQueryClient();
-
-  const { data: user, isLoading, isError, refetch } = useQuery({
-    queryKey: AUTH_ME_KEY,
-    queryFn: fetchMe,
-    retry: false,
-    staleTime: 5 * 60 * 1000,
-  });
+  const user = useAuthStore((s) => s.user);
+  const token = useAuthStore((s) => s.token);
+  const _hasHydrated = useAuthStore((s) => s._hasHydrated);
+  const setAuth = useAuthStore((s) => s.setAuth);
+  const logoutStore = useAuthStore((s) => s.logout);
 
   const loginMutation = useMutation({
     mutationFn: ({ email, password }: { email: string; password: string }) =>
-      loginService(email, password),
+      loginApi(email, password),
     onSuccess: (data) => {
-      queryClient.setQueryData(AUTH_ME_KEY, data.user ?? null);
-      router.push("/schedule");
+      if (data.accessToken && data.user) {
+        setAuth(data.accessToken, data.user);
+        router.push("/schedule");
+      }
     },
   });
 
   const logoutMutation = useMutation({
-    mutationFn: logoutService,
+    mutationFn: logoutApi,
     onSuccess: () => {
-      queryClient.setQueryData(AUTH_ME_KEY, null);
+      logoutStore();
       router.push("/login");
     },
   });
@@ -46,16 +40,17 @@ export function useAuth() {
     return logoutMutation.mutateAsync();
   }
 
-  const isAuthenticated = !!user && !isError;
+  const isAuthenticated = !!(token && user);
+  const isLoading = !_hasHydrated || loginMutation.isPending;
 
   return {
     user: user ?? null,
     isLoading,
-    isError,
+    isError: loginMutation.isError,
     isAuthenticated,
     login,
     logout,
-    refetch,
+    refetch: () => {},
     loginMutation,
     logoutMutation,
   };
