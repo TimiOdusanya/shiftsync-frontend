@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { TimePicker } from "@/components/shared/TimePicker";
 import {
   Select,
   SelectContent,
@@ -148,22 +149,22 @@ export function AvailabilitySection() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="w-24">
+            <div className="w-[7.5rem] min-w-0">
               <Label className="text-xs text-muted-foreground">Start</Label>
-              <Input
-                type="time"
-                className="h-9 mt-1"
+              <TimePicker
                 value={newStart}
-                onChange={(e) => setNewStart(e.target.value)}
+                onChange={setNewStart}
+                className="h-9 mt-1"
+                aria-label="Start time"
               />
             </div>
-            <div className="w-24">
+            <div className="w-[7.5rem] min-w-0">
               <Label className="text-xs text-muted-foreground">End</Label>
-              <Input
-                type="time"
-                className="h-9 mt-1"
+              <TimePicker
                 value={newEnd}
-                onChange={(e) => setNewEnd(e.target.value)}
+                onChange={setNewEnd}
+                className="h-9 mt-1"
+                aria-label="End time"
               />
             </div>
             <Button
