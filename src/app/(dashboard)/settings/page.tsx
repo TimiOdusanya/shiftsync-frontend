@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/shared/Badge";
 import { UserAvatar } from "@/components/shared/UserAvatar";
+import { AvailabilitySection } from "@/features/settings/components/AvailabilitySection";
 import { Settings } from "lucide-react";
 
 export default function SettingsPage() {
@@ -68,6 +69,8 @@ export default function SettingsPage() {
           )}
         </CardContent>
       </Card>
+
+      <AvailabilitySection />
 
       <Card>
         <CardHeader>

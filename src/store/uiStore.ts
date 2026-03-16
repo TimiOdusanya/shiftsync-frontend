@@ -11,11 +11,15 @@ interface SidebarSlice {
   toggleCollapsed: () => void;
 }
 
+export type ScheduleViewMode = "table" | "list";
+
 interface UIState extends SidebarSlice {
   theme: Theme;
   globalLoading: boolean;
+  scheduleViewMode: ScheduleViewMode;
   setTheme: (theme: Theme) => void;
   setGlobalLoading: (v: boolean) => void;
+  setScheduleViewMode: (mode: ScheduleViewMode) => void;
 }
 
 export const useUIStore = create<UIState>((set) => ({
@@ -27,8 +31,10 @@ export const useUIStore = create<UIState>((set) => ({
   toggleCollapsed: () => set((s) => ({ collapsed: !s.collapsed })),
   theme: "system",
   globalLoading: false,
+  scheduleViewMode: "table",
   setTheme: (theme) => set({ theme }),
   setGlobalLoading: (globalLoading) => set({ globalLoading }),
+  setScheduleViewMode: (scheduleViewMode) => set({ scheduleViewMode }),
 }));
 
 export function useSidebar() {
@@ -55,4 +61,12 @@ export function useGlobalLoading() {
 
 export function useSetGlobalLoading() {
   return useUIStore((s) => s.setGlobalLoading);
+}
+
+export function useScheduleViewMode() {
+  return useUIStore((s) => s.scheduleViewMode);
+}
+
+export function useSetScheduleViewMode() {
+  return useUIStore((s) => s.setScheduleViewMode);
 }

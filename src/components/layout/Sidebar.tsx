@@ -22,6 +22,8 @@ import {
   Users,
   PanelLeftClose,
   PanelLeft,
+  LogOut,
+  ArrowDownToLine,
 } from "lucide-react";
 
 const baseNavItems: Array<{
@@ -33,6 +35,7 @@ const baseNavItems: Array<{
 }> = [
   { href: "/schedule", label: "Schedule", icon: Calendar, iconClass: "text-primary/80" },
   { href: "/swaps", label: "Swaps", icon: RefreshCw, iconClass: "text-info/80" },
+  { href: "/drops", label: "Drops", icon: ArrowDownToLine, iconClass: "text-info/80" },
   { href: "/notifications", label: "Notifications", icon: Bell, iconClass: "text-warning/80" },
   { href: "/analytics", label: "Analytics", icon: BarChart3, iconClass: "text-primary/80", analyticsOnly: true },
   { href: "/on-duty", label: "On-Duty", icon: Clock, iconClass: "text-success/80" },
@@ -82,13 +85,28 @@ function NavItemLink({ href, label, icon: Icon, iconClass, isActive, collapsed }
 
 export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { canAccessAnalytics, canAccessUsers } = usePermissions();
   const { open, collapsed, toggleCollapsed } = useSidebar();
 
   const navItems = baseNavItems.filter(
     (item) => !item.analyticsOnly || canAccessAnalytics
   );
+
+  const logoutBtn = user ? (
+    <button
+      type="button"
+      onClick={() => logout()}
+      className={cn(
+        "group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground group-hover:text-danger",
+        collapsed && "justify-center px-2.5"
+      )}
+      aria-label="Log out"
+    >
+      <LogOut className="h-4 w-4 shrink-0 group-hover:text-danger" />
+      {!collapsed && <span>Log out</span>}
+    </button>
+  ) : null;
 
   const collapseBtn = (
     <button
@@ -119,11 +137,7 @@ export function Sidebar({ className }: { className?: string }) {
       )}
       aria-label="Main navigation"
     >
-      {open && !collapsed && (
-        <div className="hidden items-center justify-between border-b border-border px-4 py-3.5 md:flex">
-          <Logo size="sm" showText={true} />
-        </div>
-      )}
+      
       <nav className="flex flex-1 flex-col gap-0.5 p-2">
         {navItems.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -153,7 +167,16 @@ export function Sidebar({ className }: { className?: string }) {
           </>
         )}
       </nav>
-      <div className="border-t border-border p-2">
+      <div className="flex flex-col gap-0.5 border-t border-border p-2">
+        {logoutBtn &&
+          (collapsed ? (
+            <Tooltip>
+              <TooltipTrigger asChild>{logoutBtn}</TooltipTrigger>
+              <TooltipContent side="right">Log out</TooltipContent>
+            </Tooltip>
+          ) : (
+            logoutBtn
+          ))}
         {collapsed ? (
           <Tooltip>
             <TooltipTrigger asChild>{collapseBtn}</TooltipTrigger>

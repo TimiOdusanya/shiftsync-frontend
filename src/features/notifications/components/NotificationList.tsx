@@ -1,13 +1,16 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useNotifications, useMarkNotificationRead } from "@/hooks/useNotifications";
 import { formatDate, formatRelativeTime } from "@/lib/utils";
+import { getNotificationHref } from "@/lib/notificationLink";
 import { NotificationListSkeleton } from "./NotificationListSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Bell, BellRing } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function NotificationList() {
+  const router = useRouter();
   const { data: notifications = [], isLoading } = useNotifications({ limit: 50 });
   const markRead = useMarkNotificationRead();
 
@@ -29,12 +32,14 @@ export function NotificationList() {
     <div className="space-y-3">
       {notifications.map((n) => {
         const isUnread = !n.readAt;
+        const href = getNotificationHref(n);
         return (
           <button
             key={n.id}
             type="button"
             onClick={() => {
               if (isUnread) markRead.mutate(n.id);
+              if (href) router.push(href);
             }}
             className={cn(
               "group relative w-full rounded-xl border text-left transition-all duration-200",

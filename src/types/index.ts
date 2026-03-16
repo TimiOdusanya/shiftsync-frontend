@@ -68,9 +68,13 @@ export interface SwapRequest {
   requesterId: string;
   receiverId: string;
   status: SwapStatus;
+  managerApprovedBy?: string | null;
+  managerRejectedBy?: string | null;
   shift?: Shift;
   requester?: User;
   receiver?: User;
+  managerApprovedByUser?: User | null;
+  managerRejectedByUser?: User | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -83,6 +87,7 @@ export interface DropRequest {
   expiresAt: string;
   shift?: Shift;
   user?: User;
+  pickup?: { userId: string; user?: User };
   createdAt: string;
   updatedAt: string;
 }

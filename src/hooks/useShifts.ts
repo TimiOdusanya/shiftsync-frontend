@@ -23,6 +23,8 @@ export function useShifts(filters?: ShiftFilters) {
   return useQuery({
     queryKey: shiftsKeys(filters),
     queryFn: () => fetchShifts(filters),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 

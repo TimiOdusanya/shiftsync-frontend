@@ -8,27 +8,20 @@ import { UserAvatar } from "@/components/shared/UserAvatar";
 import { TimezoneDisplay } from "@/components/shared/TimezoneDisplay";
 import { StatusTag } from "@/components/shared/StatusTag";
 import { AssignStaffModal } from "./AssignStaffModal";
+import { RequestSwapModal } from "./RequestSwapModal";
+import { ShiftCardAssignmentRow } from "./ShiftCardAssignmentRow";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  UserPlus,
-  Pencil,
-  Trash2,
-  Send,
-  Undo2,
-  UserMinus,
-  LogOut,
-  Clock,
-  Users,
-} from "lucide-react";
+import { UserPlus, Pencil, Trash2, Send, Undo2, UserMinus, Clock, Users } from "lucide-react";
 import type { Shift } from "@/types";
 import { usePublishShift, useUnpublishShift, useDeleteShift } from "@/hooks/useShifts";
 import { useUnassignStaff } from "@/hooks/useAssignments";
-import { useCreateDrop } from "@/hooks/useDrops";
+import { useCreateDrop, useMyDrops } from "@/hooks/useDrops";
 import { useAuth } from "@/hooks/useAuth";
+import { useSwapRequests } from "@/hooks/useSwapRequests";
 import { usePermissions } from "@/hooks/usePermissions";
 import { cn } from "@/lib/utils";
 
@@ -78,6 +71,7 @@ export function ShiftCard({
   const { user: currentUser } = useAuth();
   const { canManageSchedule: canManage } = usePermissions();
   const [assignOpen, setAssignOpen] = React.useState(false);
+  const [swapOpen, setSwapOpen] = React.useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
 
   const publishMutation = usePublishShift();
@@ -85,6 +79,22 @@ export function ShiftCard({
   const deleteMutation = useDeleteShift();
   const unassignMutation = useUnassignStaff();
   const createDropMutation = useCreateDrop();
+  const { data: myDrops = [] } = useMyDrops();
+  const pendingDropShiftIds = React.useMemo(
+    () =>
+      new Set(
+        myDrops
+          .filter((d) => d.status === "OPEN" || d.status === "CLAIMED_PENDING_APPROVAL")
+          .map((d) => d.shiftId)
+      ),
+    [myDrops]
+  );
+  const hasPendingDropForThisShift = pendingDropShiftIds.has(shift.id);
+  const { data: swapRequests } = useSwapRequests();
+  const hasPendingSwapForThisShift =
+    (swapRequests?.initiated ?? []).some(
+      (s) => s.shiftId === shift.id && (s.status === "PENDING_ACCEPTANCE" || s.status === "PENDING_APPROVAL")
+    );
 
   const assignments = shift.assignments ?? [];
   const headcountFilled = assignments.length;
@@ -171,62 +181,20 @@ export function ShiftCard({
             <div className="rounded-lg border border-border/60 bg-muted/20">
               <ul className="divide-y divide-border/60 p-1.5">
                 {assignments.map((a) => (
-                  <li
+                  <ShiftCardAssignmentRow
                     key={a.id}
-                    className="flex items-center justify-between gap-2 rounded-md px-2 py-1.5 transition-colors hover:bg-muted/40"
-                  >
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <UserAvatar
-                        firstName={a.user?.firstName ?? ""}
-                        lastName={a.user?.lastName ?? ""}
-                        size="sm"
-                      />
-                      <span className="truncate text-sm font-medium text-foreground">
-                        {a.user?.firstName} {a.user?.lastName}
-                      </span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-0.5">
-                      {canManage && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 rounded-md text-muted-foreground hover:bg-danger/10 hover:text-danger"
-                              onClick={() =>
-                                unassignMutation.mutate({
-                                  shiftId: shift.id,
-                                  userId: a.userId,
-                                })
-                              }
-                              disabled={unassignMutation.isPending}
-                              aria-label={`Unassign ${a.user?.firstName}`}
-                            >
-                              <UserMinus className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Unassign</TooltipContent>
-                        </Tooltip>
-                      )}
-                      {a.userId === currentUser?.id && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-7 w-7 rounded-md text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                              onClick={() => createDropMutation.mutate(shift.id)}
-                              disabled={createDropMutation.isPending}
-                              aria-label="Drop this shift"
-                            >
-                              <LogOut className="h-3.5 w-3.5" />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>Drop shift</TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-                  </li>
+                    assignment={a}
+                    shiftId={shift.id}
+                    canManage={canManage}
+                    isCurrentUser={a.userId === currentUser?.id}
+                    hasPendingSwap={hasPendingSwapForThisShift}
+                    hasPendingDrop={hasPendingDropForThisShift}
+                    onUnassign={(p) => unassignMutation.mutate(p)}
+                    onSwap={() => setSwapOpen(true)}
+                    onDrop={() => createDropMutation.mutate(shift.id)}
+                    isUnassignPending={unassignMutation.isPending}
+                    isDropPending={createDropMutation.isPending}
+                  />
                 ))}
               </ul>
             </div>
@@ -237,6 +205,11 @@ export function ShiftCard({
         shift={shift}
         open={assignOpen}
         onOpenChange={setAssignOpen}
+      />
+      <RequestSwapModal
+        shift={shift}
+        open={swapOpen}
+        onOpenChange={setSwapOpen}
       />
       <ConfirmDialog
         open={deleteConfirmOpen}

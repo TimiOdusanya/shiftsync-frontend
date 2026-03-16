@@ -103,6 +103,10 @@ export function ShiftFormModal({ shift, open, onOpenChange }: ShiftFormModalProp
       locations.find((l) => l.id === locId)?.timezone ?? "UTC";
     const startAt = localTimeInZoneToUTC(startDate, startTime, timezone);
     const endAt = localTimeInZoneToUTC(endDate, endTime, timezone);
+    if (new Date(startAt).getTime() < Date.now()) {
+      setError("Shift start cannot be in the past.");
+      return;
+    }
     if (new Date(endAt) <= new Date(startAt)) {
       setError("End time must be after start time.");
       return;
@@ -129,6 +133,9 @@ export function ShiftFormModal({ shift, open, onOpenChange }: ShiftFormModalProp
       setError((err as Error).message);
     }
   }
+
+  const timezone = locations.find((l) => l.id === locationId)?.timezone ?? "UTC";
+  const minStartDate = new Date().toLocaleDateString("en-CA", { timeZone: timezone });
 
   const pending = createMutation.isPending || updateMutation.isPending;
   const canSubmit =
@@ -199,6 +206,7 @@ export function ShiftFormModal({ shift, open, onOpenChange }: ShiftFormModalProp
                 onChange={setStartDate}
                 placeholder="Pick start date"
                 required
+                min={minStartDate}
               />
             </FormField>
             <FormField label="Start time" name="startTime" required>

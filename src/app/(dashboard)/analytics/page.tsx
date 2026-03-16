@@ -14,6 +14,7 @@ import { OvertimeCardSkeleton } from "@/features/analytics/components/OvertimeCa
 import { FairnessCardSkeleton } from "@/features/analytics/components/FairnessCardSkeleton";
 import { FairnessDistributionChart } from "@/features/analytics/components/FairnessDistributionChart";
 import { OvertimeVisual } from "@/features/analytics/components/OvertimeVisual";
+import { AnalyticsStatsSidebar } from "@/features/analytics/components/AnalyticsStatsSidebar";
 import {
   Select,
   SelectContent,
@@ -21,9 +22,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { BarChart3, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 function getWeekRange(weekOffset: number) {
   const d = new Date();
@@ -91,9 +93,19 @@ export default function AnalyticsPage() {
     });
   }, [fairness?.distribution, users]);
   const weekLabel = `${weekStart} – ${weekEnd}`;
+  const periodLabel = useMemo(() => {
+    if (!periodStart || !periodEnd) return "Selected period";
+    const fmt = (s: string) =>
+      new Date(s + "T12:00:00").toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    return periodStart === periodEnd ? fmt(periodStart) : `${fmt(periodStart)} – ${fmt(periodEnd)}`;
+  }, [periodStart, periodEnd]);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 lg:space-y-8">
       <header className="flex min-w-0 items-start gap-2 sm:gap-3">
         <BarChart3 className="mt-1 h-5 w-5 shrink-0 text-primary sm:h-6 sm:w-6" aria-hidden />
         <div className="min-w-0 flex-1">
@@ -102,6 +114,8 @@ export default function AnalyticsPage() {
         </div>
       </header>
 
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr,minmax(280px,340px)] lg:gap-8">
+        <div className="min-w-0 space-y-8">
       <Card>
         <CardHeader>
           <CardTitle className="text-lg">Overtime projection</CardTitle>
@@ -180,8 +194,11 @@ export default function AnalyticsPage() {
           <CardTitle className="text-lg">Fairness & distribution</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-wrap items-center gap-3">
-            <div className="w-44">
+          <div className="flex flex-wrap items-end gap-3 sm:gap-4">
+            <div className="w-full min-w-0 sm:w-44">
+              <Label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+                Location
+              </Label>
               <Select value={locationId} onValueChange={setLocationId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select location" />
@@ -195,18 +212,33 @@ export default function AnalyticsPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Input
-              type="date"
-              className="h-10 w-auto"
-              value={periodStart}
-              onChange={(e) => setPeriodStart(e.target.value)}
-            />
-            <Input
-              type="date"
-              className="h-10 w-auto"
-              value={periodEnd}
-              onChange={(e) => setPeriodEnd(e.target.value)}
-            />
+            <div className="grid min-w-0 flex-1 grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="fairness-start" className="text-xs font-medium text-muted-foreground">
+                  Start date
+                </Label>
+                <DatePicker
+                  id="fairness-start"
+                  value={periodStart}
+                  onChange={setPeriodStart}
+                  aria-label="Fairness period start date"
+                  min={undefined}
+                  max={periodEnd || undefined}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="fairness-end" className="text-xs font-medium text-muted-foreground">
+                  End date
+                </Label>
+                <DatePicker
+                  id="fairness-end"
+                  value={periodEnd}
+                  onChange={setPeriodEnd}
+                  aria-label="Fairness period end date"
+                  min={periodStart || undefined}
+                />
+              </div>
+            </div>
           </div>
           {fairnessLoading ? (
             <FairnessCardSkeleton />
@@ -229,6 +261,19 @@ export default function AnalyticsPage() {
           )}
         </CardContent>
       </Card>
+        </div>
+
+        <aside className="lg:sticky lg:top-6 lg:self-start">
+          <AnalyticsStatsSidebar
+            overtime={overtime ?? null}
+            overtimeLoading={overtimeLoading}
+            fairness={fairness ?? null}
+            fairnessLoading={fairnessLoading}
+            weekLabel={weekLabel}
+            periodLabel={periodLabel}
+          />
+        </aside>
+      </div>
     </div>
   );
 }

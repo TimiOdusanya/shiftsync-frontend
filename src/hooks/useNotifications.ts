@@ -15,6 +15,8 @@ export function useNotifications(options?: { unreadOnly?: boolean; limit?: numbe
   return useQuery({
     queryKey: notificationsKey(options?.unreadOnly),
     queryFn: () => fetchNotifications(options),
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -22,6 +24,8 @@ export function useUnreadCount() {
   return useQuery({
     queryKey: unreadCountKey(),
     queryFn: fetchUnreadCount,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -30,8 +34,7 @@ export function useMarkNotificationRead() {
   return useMutation({
     mutationFn: markNotificationRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsKey() });
-      queryClient.invalidateQueries({ queryKey: unreadCountKey() });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     },
     onError: (err: Error) => t.error("Failed to mark as read", err.message),
   });
@@ -42,8 +45,7 @@ export function useMarkAllNotificationsRead() {
   return useMutation({
     mutationFn: markAllNotificationsRead,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: notificationsKey() });
-      queryClient.invalidateQueries({ queryKey: unreadCountKey() });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
       t.success("All notifications marked as read");
     },
     onError: (err: Error) => t.error("Failed to mark all as read", err.message),

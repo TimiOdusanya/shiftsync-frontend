@@ -13,11 +13,17 @@ import {
 } from "@/services/swaps";
 import { shiftsKeys } from "@/services/shifts";
 import { t } from "@/lib/toast";
+import { useUser } from "@/store/authStore";
 
 export function useSwapRequests() {
+  const user = useUser();
+  const userId = user?.id ?? null;
   return useQuery({
-    queryKey: swapRequestsKey(),
+    queryKey: swapRequestsKey(userId),
     queryFn: fetchMySwapRequests,
+    enabled: !!userId,
+    staleTime: 0,
+    refetchOnWindowFocus: true,
   });
 }
 
@@ -27,7 +33,7 @@ export function useCreateSwap() {
     mutationFn: ({ shiftId, receiverId }: { shiftId: string; receiverId: string }) =>
       createSwap(shiftId, receiverId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: swapRequestsKey() });
+      queryClient.invalidateQueries({ queryKey: ["swaps"] });
       queryClient.invalidateQueries({ queryKey: shiftsKeys() });
       t.success("Swap request sent");
     },
@@ -40,7 +46,7 @@ export function useAcceptSwap() {
   return useMutation({
     mutationFn: acceptSwap,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: swapRequestsKey() });
+      queryClient.invalidateQueries({ queryKey: ["swaps"] });
       queryClient.invalidateQueries({ queryKey: shiftsKeys() });
       t.success("Swap accepted");
     },
@@ -53,7 +59,7 @@ export function useRejectSwap() {
   return useMutation({
     mutationFn: ({ id, reason }: { id: string; reason?: string }) => rejectSwap(id, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: swapRequestsKey() });
+      queryClient.invalidateQueries({ queryKey: ["swaps"] });
       queryClient.invalidateQueries({ queryKey: shiftsKeys() });
       t.success("Swap rejected");
     },
@@ -66,7 +72,7 @@ export function useApproveSwap() {
   return useMutation({
     mutationFn: approveSwap,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: swapRequestsKey() });
+      queryClient.invalidateQueries({ queryKey: ["swaps"] });
       queryClient.invalidateQueries({ queryKey: shiftsKeys() });
       t.success("Swap approved");
     },
@@ -80,7 +86,7 @@ export function useRejectSwapByManager() {
     mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
       rejectSwapByManager(id, reason),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: swapRequestsKey() });
+      queryClient.invalidateQueries({ queryKey: ["swaps"] });
       queryClient.invalidateQueries({ queryKey: shiftsKeys() });
       t.success("Swap rejected");
     },
@@ -93,7 +99,7 @@ export function useCancelSwap() {
   return useMutation({
     mutationFn: cancelSwap,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: swapRequestsKey() });
+      queryClient.invalidateQueries({ queryKey: ["swaps"] });
       queryClient.invalidateQueries({ queryKey: shiftsKeys() });
       t.success("Swap cancelled");
     },

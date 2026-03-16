@@ -4,6 +4,7 @@ import { useState, useMemo } from "react";
 import { useLocations } from "@/hooks/useLocations";
 import { useLocationFilter } from "@/store/location-filter-store";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useScheduleViewMode, useSetScheduleViewMode } from "@/store/uiStore";
 import {
   useSelectedShiftId,
   useShiftFormOpen,
@@ -20,7 +21,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { Calendar, Plus, ChevronLeft, ChevronRight, LayoutList, LayoutGrid } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { Shift, ShiftFilters } from "@/types";
 
 function getWeekRange(weekOffset: number) {
@@ -48,6 +51,8 @@ export default function SchedulePage() {
   const { data: locations = [] } = useLocations();
   const { locationId, setLocationId } = useLocationFilter();
   const { canManageSchedule } = usePermissions();
+  const scheduleViewMode = useScheduleViewMode();
+  const setScheduleViewMode = useSetScheduleViewMode();
   const [weekOffset, setWeekOffset] = useState(0);
   const { start: startDate, end: endDate } = useMemo(() => getWeekRange(weekOffset), [weekOffset]);
   const selectedShiftId = useSelectedShiftId();
@@ -115,6 +120,48 @@ export default function SchedulePage() {
               <ChevronRight className="h-4 w-4 text-primary/80" />
             </Button>
           </div>
+          <div className="flex items-center gap-0.5 rounded-lg border border-border bg-background p-0.5">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 rounded-md",
+                    scheduleViewMode === "table"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => setScheduleViewMode("table")}
+                  aria-label="Table view"
+                  aria-pressed={scheduleViewMode === "table"}
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Table view</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className={cn(
+                    "h-8 w-8 rounded-md",
+                    scheduleViewMode === "list"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
+                  onClick={() => setScheduleViewMode("list")}
+                  aria-label="List view"
+                  aria-pressed={scheduleViewMode === "list"}
+                >
+                  <LayoutList className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>List view</TooltipContent>
+            </Tooltip>
+          </div>
           {canManageSchedule && (
             <Button
               size="sm"
@@ -132,6 +179,7 @@ export default function SchedulePage() {
         filters={filters}
         onEdit={(shift: Shift) => openShiftForm(shift.id)}
         canManageSchedule={canManageSchedule}
+        viewMode={scheduleViewMode}
       />
 
       <ShiftFormModal

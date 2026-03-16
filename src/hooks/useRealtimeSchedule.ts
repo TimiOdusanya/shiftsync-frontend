@@ -5,9 +5,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useSocket } from "./useSocket";
 import { SOCKET_EVENTS } from "@/lib/socket";
 import { shiftsKeys } from "@/services/shifts";
-import { swapRequestsKey } from "@/services/swaps";
-import { notificationsKey, unreadCountKey } from "@/services/notifications";
-import { dropRequestsKey } from "@/services/swaps";
 
 export function useRealtimeSchedule() {
   const { on } = useSocket();
@@ -23,12 +20,12 @@ export function useRealtimeSchedule() {
     });
 
     const unsubSwap = on(SOCKET_EVENTS.SWAP_STATE_CHANGE, () => {
-      queryClient.invalidateQueries({ queryKey: swapRequestsKey() });
+      queryClient.invalidateQueries({ queryKey: ["swaps"] });
       queryClient.invalidateQueries({ queryKey: shiftsKeys() });
     });
 
     const unsubDrop = on(SOCKET_EVENTS.DROP_CLAIMED, () => {
-      queryClient.invalidateQueries({ queryKey: dropRequestsKey() });
+      queryClient.invalidateQueries({ queryKey: ["drops"] });
       queryClient.invalidateQueries({ queryKey: shiftsKeys() });
     });
 
@@ -37,8 +34,7 @@ export function useRealtimeSchedule() {
     });
 
     const unsubNotification = on(SOCKET_EVENTS.NOTIFICATION, () => {
-      queryClient.invalidateQueries({ queryKey: notificationsKey() });
-      queryClient.invalidateQueries({ queryKey: unreadCountKey() });
+      queryClient.invalidateQueries({ queryKey: ["notifications"] });
     });
 
     return () => {

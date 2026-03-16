@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   useNotifications,
   useUnreadCount,
   useMarkNotificationRead,
   useMarkAllNotificationsRead,
 } from "@/hooks/useNotifications";
+import { getNotificationHref } from "@/lib/notificationLink";
 import { Button } from "@/components/ui/button";
 import { NotificationCenterListSkeleton } from "./NotificationCenterSkeleton";
 import { formatDate } from "@/lib/utils";
@@ -15,10 +17,18 @@ import { cn } from "@/lib/utils";
 
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
+  const router = useRouter();
   const { data: notifications = [], isLoading } = useNotifications({ limit: 20 });
   const { data: unreadCount = 0 } = useUnreadCount();
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
+
+  const handleNotificationClick = (n: (typeof notifications)[0]) => {
+    if (!n.readAt) markRead.mutate(n.id);
+    const href = getNotificationHref(n);
+    setOpen(false);
+    if (href) router.push(href);
+  };
 
   return (
     <div className="relative">
@@ -59,7 +69,7 @@ export function NotificationCenter() {
             aria-label="Notifications"
           >
             <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <p className="font-semibold text-foreground">Notifications</p>
+              <p className="font-semibold text-foreground text-md">Notifications</p>
               {unreadCount > 0 && (
                 <Button
                   variant="ghost"
@@ -89,9 +99,7 @@ export function NotificationCenter() {
                         "cursor-pointer px-4 py-3 text-sm transition-colors hover:bg-muted/40",
                         !n.readAt && "bg-primary/[0.03]"
                       )}
-                      onClick={() => {
-                        if (!n.readAt) markRead.mutate(n.id);
-                      }}
+                      onClick={() => handleNotificationClick(n)}
                     >
                       <div className="flex items-start gap-2">
                         {!n.readAt && (

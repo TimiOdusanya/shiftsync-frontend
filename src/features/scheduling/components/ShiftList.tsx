@@ -2,18 +2,26 @@
 
 import { useShifts } from "@/hooks/useShifts";
 import { ShiftCard } from "./ShiftCard";
+import { ShiftTable } from "./ShiftTable";
 import { ShiftListSkeleton } from "./ShiftListSkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Calendar } from "lucide-react";
 import type { Shift, ShiftFilters } from "@/types";
+import type { ScheduleViewMode } from "@/store/uiStore";
 
 export interface ShiftListProps {
   filters?: ShiftFilters;
   onEdit: (shift: Shift) => void;
   canManageSchedule?: boolean;
+  viewMode?: ScheduleViewMode;
 }
 
-export function ShiftList({ filters, onEdit, canManageSchedule = false }: ShiftListProps) {
+export function ShiftList({
+  filters,
+  onEdit,
+  canManageSchedule = false,
+  viewMode = "list",
+}: ShiftListProps) {
   const { data: shifts = [], isLoading } = useShifts(filters);
 
   if (isLoading) {
@@ -30,6 +38,16 @@ export function ShiftList({ filters, onEdit, canManageSchedule = false }: ShiftL
             ? "Create a shift or adjust the date range to see shifts here."
             : "Adjust the date range to see shifts here."
         }
+      />
+    );
+  }
+
+  if (viewMode === "table") {
+    return (
+      <ShiftTable
+        shifts={shifts}
+        onEdit={onEdit}
+        canManageSchedule={canManageSchedule}
       />
     );
   }
