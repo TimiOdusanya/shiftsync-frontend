@@ -8,6 +8,7 @@ import {
   fetchOvertimeProjection,
   fetchFairness,
   fetchOnDuty,
+  fetchAllowedOnDutyLocationIds,
 } from "@/services/analytics";
 
 export function useOvertimeProjection(
@@ -38,5 +39,14 @@ export function useOnDuty(locationId?: string) {
   return useQuery({
     queryKey: onDutyKey(locationId),
     queryFn: () => fetchOnDuty(locationId),
+  });
+}
+
+const ALLOWED_ON_DUTY_LOCATIONS_KEY = ["analytics", "on-duty", "allowed-locations"] as const;
+
+export function useAllowedOnDutyLocationIds() {
+  return useQuery({
+    queryKey: ALLOWED_ON_DUTY_LOCATIONS_KEY,
+    queryFn: fetchAllowedOnDutyLocationIds,
   });
 }

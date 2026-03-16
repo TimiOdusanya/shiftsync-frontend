@@ -35,7 +35,7 @@ export default function DashboardLayout({
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="flex min-h-screen flex-col bg-background md:h-screen md:overflow-hidden">
       <Header />
       {open && (
         <div
@@ -44,11 +44,11 @@ export default function DashboardLayout({
           onClick={() => setOpen(false)}
         />
       )}
-      <div className="flex min-h-[calc(100vh-3.5rem)] flex-1">
+      <div className="flex min-h-0 flex-1 md:h-[calc(100vh-3.5rem)] md:overflow-hidden">
         <Sidebar />
         <main
           className={cn(
-            "min-w-0 flex-1 overflow-auto p-4 md:p-6",
+            "min-h-0 min-w-0 flex-1 overflow-auto p-4 md:p-6",
             !open && "md:pl-6"
           )}
         >

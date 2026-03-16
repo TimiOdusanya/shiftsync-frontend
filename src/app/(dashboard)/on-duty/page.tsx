@@ -1,6 +1,7 @@
 "use client";
 
-import { useOnDuty } from "@/hooks/useAnalytics";
+import { useEffect } from "react";
+import { useOnDuty, useAllowedOnDutyLocationIds } from "@/hooks/useAnalytics";
 import { useLocations } from "@/hooks/useLocations";
 import { useLocationFilter } from "@/store/location-filter-store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +21,24 @@ import { Clock } from "lucide-react";
 export default function OnDutyPage() {
   const { locationId, setLocationId } = useLocationFilter();
   const { data: locations = [] } = useLocations();
+  const { data: allowedData } = useAllowedOnDutyLocationIds();
+  const allowedLocationIds = allowedData?.locationIds ?? null;
+  const visibleLocations =
+    Array.isArray(allowedLocationIds) && allowedLocationIds.length > 0
+      ? locations.filter((loc) => allowedLocationIds.includes(loc.id))
+      : locations;
   const { data: byLocation = {}, isLoading } = useOnDuty(locationId || undefined);
+
+  useEffect(() => {
+    if (
+      locationId &&
+      Array.isArray(allowedLocationIds) &&
+      allowedLocationIds.length > 0 &&
+      !allowedLocationIds.includes(locationId)
+    ) {
+      setLocationId("");
+    }
+  }, [locationId, allowedLocationIds, setLocationId]);
 
   const entries = Object.entries(byLocation) as [
     string,
@@ -53,7 +71,7 @@ export default function OnDutyPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">All locations</SelectItem>
-              {locations.map((loc) => (
+              {visibleLocations.map((loc) => (
                 <SelectItem key={loc.id} value={loc.id}>
                   {loc.name}
                 </SelectItem>

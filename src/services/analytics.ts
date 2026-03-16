@@ -43,3 +43,7 @@ export async function fetchOnDuty(locationId?: string): Promise<Record<string, u
     locationId ? { locationId } : undefined
   );
 }
+
+export async function fetchAllowedOnDutyLocationIds(): Promise<{ locationIds: string[] }> {
+  return apiClient.get<{ locationIds: string[] }>("/analytics/on-duty/allowed-locations");
+}
